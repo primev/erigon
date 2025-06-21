@@ -554,6 +554,18 @@ func (h *Header) DecodeRLP(s *rlp.Stream) error {
 	// 	rlp.DecodeBytes(rawKv, h.VerkleKeyVals)
 	// }
 
+	// TEMPORARY: Eat any further elements until end-of-list
+	// TODO: Handle geth's zeroed out fields here.
+
+	for {
+		if _, _, err := s.Kind(); errors.Is(err, rlp.EOL) {
+			break
+		}
+		if _, err := s.Raw(); err != nil {
+			return err
+		}
+	}
+
 	if err := s.ListEnd(); err != nil {
 		return fmt.Errorf("close header struct: %w", err)
 	}
