@@ -467,92 +467,92 @@ func (h *Header) DecodeRLP(s *rlp.Stream) error {
 	h.BaseFee = new(big.Int).SetBytes(b)
 
 	// WithdrawalsHash
-	if b, err = s.Bytes(); err != nil {
-		if errors.Is(err, rlp.EOL) {
-			h.WithdrawalsHash = nil
-			if err := s.ListEnd(); err != nil {
-				return fmt.Errorf("close header struct (no WithdrawalsHash): %w", err)
-			}
-			return nil
-		}
-		return fmt.Errorf("read WithdrawalsHash: %w", err)
-	}
-	if len(b) != 32 {
-		return fmt.Errorf("wrong size for WithdrawalsHash: %d", len(b))
-	}
-	h.WithdrawalsHash = new(common.Hash)
-	h.WithdrawalsHash.SetBytes(b)
+	// if b, err = s.Bytes(); err != nil {
+	// 	if errors.Is(err, rlp.EOL) {
+	// 		h.WithdrawalsHash = nil
+	// 		if err := s.ListEnd(); err != nil {
+	// 			return fmt.Errorf("close header struct (no WithdrawalsHash): %w", err)
+	// 		}
+	// 		return nil
+	// 	}
+	// 	return fmt.Errorf("read WithdrawalsHash: %w", err)
+	// }
+	// if len(b) != 32 {
+	// 	return fmt.Errorf("wrong size for WithdrawalsHash: %d", len(b))
+	// }
+	// h.WithdrawalsHash = new(common.Hash)
+	// h.WithdrawalsHash.SetBytes(b)
 
-	var blobGasUsed uint64
-	if blobGasUsed, err = s.Uint(); err != nil {
-		if errors.Is(err, rlp.EOL) {
-			h.BlobGasUsed = nil
-			if err := s.ListEnd(); err != nil {
-				return fmt.Errorf("close header struct (no BlobGasUsed): %w", err)
-			}
-			return nil
-		}
-		return fmt.Errorf("read BlobGasUsed: %w", err)
-	}
-	h.BlobGasUsed = &blobGasUsed
+	// var blobGasUsed uint64
+	// if blobGasUsed, err = s.Uint(); err != nil {
+	// 	if errors.Is(err, rlp.EOL) {
+	// 		h.BlobGasUsed = nil
+	// 		if err := s.ListEnd(); err != nil {
+	// 			return fmt.Errorf("close header struct (no BlobGasUsed): %w", err)
+	// 		}
+	// 		return nil
+	// 	}
+	// 	return fmt.Errorf("read BlobGasUsed: %w", err)
+	// }
+	// h.BlobGasUsed = &blobGasUsed
 
-	var excessBlobGas uint64
-	if excessBlobGas, err = s.Uint(); err != nil {
-		if errors.Is(err, rlp.EOL) {
-			h.ExcessBlobGas = nil
-			if err := s.ListEnd(); err != nil {
-				return fmt.Errorf("close header struct (no ExcessBlobGas): %w", err)
-			}
-			return nil
-		}
-		return fmt.Errorf("read ExcessBlobGas: %w", err)
-	}
-	h.ExcessBlobGas = &excessBlobGas
+	// var excessBlobGas uint64
+	// if excessBlobGas, err = s.Uint(); err != nil {
+	// 	if errors.Is(err, rlp.EOL) {
+	// 		h.ExcessBlobGas = nil
+	// 		if err := s.ListEnd(); err != nil {
+	// 			return fmt.Errorf("close header struct (no ExcessBlobGas): %w", err)
+	// 		}
+	// 		return nil
+	// 	}
+	// 	return fmt.Errorf("read ExcessBlobGas: %w", err)
+	// }
+	// h.ExcessBlobGas = &excessBlobGas
 
-	// ParentBeaconBlockRoot
-	if b, err = s.Bytes(); err != nil {
-		if errors.Is(err, rlp.EOL) {
-			h.ParentBeaconBlockRoot = nil
-			if err := s.ListEnd(); err != nil {
-				return fmt.Errorf("close header struct (no ParentBeaconBlockRoot): %w", err)
-			}
-			return nil
-		}
-		return fmt.Errorf("read ParentBeaconBlockRoot: %w", err)
-	}
-	if len(b) != 32 {
-		return fmt.Errorf("wrong size for ParentBeaconBlockRoot: %d", len(b))
-	}
-	h.ParentBeaconBlockRoot = new(common.Hash)
-	h.ParentBeaconBlockRoot.SetBytes(b)
+	// // ParentBeaconBlockRoot
+	// if b, err = s.Bytes(); err != nil {
+	// 	if errors.Is(err, rlp.EOL) {
+	// 		h.ParentBeaconBlockRoot = nil
+	// 		if err := s.ListEnd(); err != nil {
+	// 			return fmt.Errorf("close header struct (no ParentBeaconBlockRoot): %w", err)
+	// 		}
+	// 		return nil
+	// 	}
+	// 	return fmt.Errorf("read ParentBeaconBlockRoot: %w", err)
+	// }
+	// if len(b) != 32 {
+	// 	return fmt.Errorf("wrong size for ParentBeaconBlockRoot: %d", len(b))
+	// }
+	// h.ParentBeaconBlockRoot = new(common.Hash)
+	// h.ParentBeaconBlockRoot.SetBytes(b)
 
-	// RequestsHash
-	if b, err = s.Bytes(); err != nil {
-		if errors.Is(err, rlp.EOL) {
-			h.RequestsHash = nil
-			if err := s.ListEnd(); err != nil {
-				return fmt.Errorf("close header struct (no RequestsHash): %w", err)
-			}
-			return nil
-		}
-		return fmt.Errorf("read RequestsHash: %w", err)
-	}
-	if len(b) != 32 {
-		return fmt.Errorf("wrong size for RequestsHash: %d", len(b))
-	}
-	h.RequestsHash = new(common.Hash)
-	h.RequestsHash.SetBytes(b)
+	// // RequestsHash
+	// if b, err = s.Bytes(); err != nil {
+	// 	if errors.Is(err, rlp.EOL) {
+	// 		h.RequestsHash = nil
+	// 		if err := s.ListEnd(); err != nil {
+	// 			return fmt.Errorf("close header struct (no RequestsHash): %w", err)
+	// 		}
+	// 		return nil
+	// 	}
+	// 	return fmt.Errorf("read RequestsHash: %w", err)
+	// }
+	// if len(b) != 32 {
+	// 	return fmt.Errorf("wrong size for RequestsHash: %d", len(b))
+	// }
+	// h.RequestsHash = new(common.Hash)
+	// h.RequestsHash.SetBytes(b)
 
-	if h.Verkle {
-		if h.VerkleProof, err = s.Bytes(); err != nil {
-			return fmt.Errorf("read VerkleProof: %w", err)
-		}
-		rawKv, err := s.Raw()
-		if err != nil {
-			return err
-		}
-		rlp.DecodeBytes(rawKv, h.VerkleKeyVals)
-	}
+	// if h.Verkle {
+	// 	if h.VerkleProof, err = s.Bytes(); err != nil {
+	// 		return fmt.Errorf("read VerkleProof: %w", err)
+	// 	}
+	// 	rawKv, err := s.Raw()
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	rlp.DecodeBytes(rawKv, h.VerkleKeyVals)
+	// }
 
 	if err := s.ListEnd(); err != nil {
 		return fmt.Errorf("close header struct: %w", err)
