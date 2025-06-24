@@ -23,17 +23,16 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/c2h5oh/datasize"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"github.com/urfave/cli/v2"
 	"math/big"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/c2h5oh/datasize"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	"github.com/urfave/cli/v2"
 
 	"github.com/erigontech/erigon-lib/chain/networkid"
 	"github.com/erigontech/erigon-lib/chain/networkname"
@@ -220,6 +219,13 @@ var (
 		Usage: "How often transactions should be committed to the storage",
 		Value: txpoolcfg.DefaultConfig.CommitEvery,
 	}
+
+	ZeroFeeTxListFlag = cli.StringSliceFlag{
+		Name:  "zero-fee-tx-list",
+		Usage: "addresses to exempt from gas fees",
+		Value: cli.NewStringSlice(),
+	}
+
 	// Miner settings
 	MiningEnabledFlag = cli.BoolFlag{
 		Name:  "mine",
@@ -2058,6 +2064,16 @@ func SetEthConfig(ctx *cli.Context, nodeConfig *nodecfg.Config, cfg *ethconfig.C
 		logger.Info("Using custom developer period", "seconds", cfg.Genesis.Config.Clique.Period)
 		if !ctx.IsSet(MinerGasPriceFlag.Name) {
 			cfg.Miner.GasPrice = big.NewInt(1)
+		}
+	}
+
+	for _, entry := range ctx.StringSlice(ZeroFeeTxListFlag.Name) {
+		for _, addrStr := range strings.Split(entry, ",") {
+			addr := strings.TrimSpace(addrStr)
+			if addr == "" {
+				continue
+			}
+			core.ZeroFeeTxList[libcommon.HexToAddress(addr)] = struct{}{}
 		}
 	}
 

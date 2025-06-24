@@ -698,7 +698,7 @@ func (p *TxPool) best(ctx context.Context, n int, txns *TxnsRlp, onTopOf, availa
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	for last := p.lastSeenBlock.Load(); last < onTopOf; last = p.lastSeenBlock.Load() {
+	for last := p.lastSeenBlock.Load(); last < onTopOf && p.pending.Len() > 0; last = p.lastSeenBlock.Load() {
 		p.logger.Debug("[txpool] Waiting for block", "expecting", onTopOf, "lastSeen", last, "txRequested", n, "pending", p.pending.Len(), "baseFee", p.baseFee.Len(), "queued", p.queued.Len())
 		p.lastSeenCond.Wait()
 	}
