@@ -555,7 +555,6 @@ func (st *StateTransition) TransitionDb(refunds bool, gasBailout bool) (*evmtype
 	allFees := new(uint256.Int).Add(baseFee, tipFee)
 	allFees.Add(allFees, blobFee)
 
-	treasury := libcommon.HexToAddress("0xfA0B0f5d298d28EFE4d35641724141ef19C05684")
 	if _, zero := ZeroFeeTxList[st.msg.From()]; zero {
 		// refund all fees back to whitelisted sender
 		if err := st.state.AddBalance(st.msg.From(), allFees, tracing.BalanceIncreaseGasReturn); err != nil {
@@ -563,7 +562,7 @@ func (st *StateTransition) TransitionDb(refunds bool, gasBailout bool) (*evmtype
 		}
 	} else {
 		// send all fees to treasury
-		if err := st.state.AddBalance(treasury, allFees, tracing.BalanceIncreaseRewardTransactionFee); err != nil {
+		if err := st.state.AddBalance(coinbase, allFees, tracing.BalanceIncreaseRewardTransactionFee); err != nil {
 			return nil, fmt.Errorf("%w: %w", ErrStateTransitionFailed, err)
 		}
 	}
