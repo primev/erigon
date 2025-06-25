@@ -221,7 +221,7 @@ var (
 	}
 
 	ZeroFeeTxListFlag = cli.StringSliceFlag{
-		Name:  "zero-fee-tx-list",
+		Name:  "zerofee.tx.list",
 		Usage: "addresses to exempt from gas fees",
 		Value: cli.NewStringSlice(),
 	}

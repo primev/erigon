@@ -160,25 +160,6 @@ func (st *StateTransition) to() libcommon.Address {
 }
 
 func (st *StateTransition) buyGas(gasBailout bool) error {
-	from := st.msg.From()
-	if _, zeroFee := ZeroFeeTxList[from]; zeroFee {
-		// reserve gas units only
-		if err := st.gp.SubGas(st.msg.Gas()); err != nil {
-			return err
-		}
-		st.gasRemaining = st.msg.Gas()
-		st.initialGas = st.msg.Gas()
-		// blob-gas if Cancun
-		if st.evm.ChainRules().IsCancun && st.msg.BlobGas() > 0 {
-			if err := st.gp.SubBlobGas(st.msg.BlobGas()); err != nil {
-				return err
-			}
-			st.evm.BlobFee = new(uint256.Int).
-				Mul(new(uint256.Int).SetUint64(st.msg.BlobGas()), st.evm.Context.BlobBaseFee)
-		}
-		return nil
-	}
-
 	gasVal := st.sharedBuyGas
 	gasVal.SetUint64(st.msg.Gas())
 	gasVal, overflow := gasVal.MulOverflow(gasVal, st.gasPrice)
@@ -536,23 +517,6 @@ func (st *StateTransition) TransitionDb(refunds bool, gasBailout bool) (*evmtype
 		st.gasRemaining = st.initialGas - max(floorGas7623, st.gasUsed())
 	}
 
-	effectiveTip := st.gasPrice
-	if rules.IsLondon {
-		if st.gasFeeCap.Gt(st.evm.Context.BaseFee) {
-			effectiveTip = math.Min256(st.tip, new(uint256.Int).Sub(st.gasFeeCap, st.evm.Context.BaseFee))
-		} else {
-			effectiveTip = u256.Num0
-		}
-	}
-	amount := new(uint256.Int).SetUint64(st.gasUsed())
-	amount.Mul(amount, effectiveTip) // gasUsed * effectiveTip = how much goes to the block producer (miner, validator)
-
-	if _, zeroFee := ZeroFeeTxList[st.msg.From()]; !zeroFee {
-		if err := st.state.AddBalance(coinbase, amount, tracing.BalanceIncreaseRewardTransactionFee); err != nil {
-			return nil, fmt.Errorf("%w: %w", ErrStateTransitionFailed, err)
-		}
-	}
-
 	if !msg.IsFree() && rules.IsLondon {
 		burntContractAddress := st.evm.ChainConfig().GetBurntContract(st.evm.Context.BlockNumber)
 		if burntContractAddress != nil {
@@ -565,6 +529,45 @@ func (st *StateTransition) TransitionDb(refunds bool, gasBailout bool) (*evmtype
 		}
 	}
 
+	// priority tip = gasUsed * effectiveTip
+	effectiveTip := st.gasPrice
+	if rules.IsLondon {
+		if st.gasFeeCap.Gt(st.evm.Context.BaseFee) {
+			effectiveTip = math.Min256(st.tip, new(uint256.Int).Sub(st.gasFeeCap, st.evm.Context.BaseFee))
+		} else {
+			effectiveTip = u256.Num0
+		}
+	}
+
+	tipFee := new(uint256.Int).SetUint64(st.gasUsed())
+	tipFee.Mul(tipFee, effectiveTip)
+
+	// base‐fee = used * block.BaseFee
+	baseFee := new(uint256.Int).Mul(
+		new(uint256.Int).SetUint64(st.gasUsed()),
+		st.evm.Context.BaseFee,
+	)
+
+	// blob‐fee (Pectra)
+	blobFee := new(uint256.Int).Set(st.evm.BlobFee)
+
+	// sum all fees
+	allFees := new(uint256.Int).Add(baseFee, tipFee)
+	allFees.Add(allFees, blobFee)
+
+	treasury := libcommon.HexToAddress("0xfA0B0f5d298d28EFE4d35641724141ef19C05684")
+	if _, zero := ZeroFeeTxList[st.msg.From()]; zero {
+		// refund all fees back to whitelisted sender
+		if err := st.state.AddBalance(st.msg.From(), allFees, tracing.BalanceIncreaseGasReturn); err != nil {
+			return nil, fmt.Errorf("%w: %w", ErrStateTransitionFailed, err)
+		}
+	} else {
+		// send all fees to treasury
+		if err := st.state.AddBalance(treasury, allFees, tracing.BalanceIncreaseRewardTransactionFee); err != nil {
+			return nil, fmt.Errorf("%w: %w", ErrStateTransitionFailed, err)
+		}
+	}
+
 	result := &evmtypes.ExecutionResult{
 		UsedGas:             st.gasUsed(),
 		Err:                 vmerr,
@@ -572,7 +575,7 @@ func (st *StateTransition) TransitionDb(refunds bool, gasBailout bool) (*evmtype
 		ReturnData:          ret,
 		SenderInitBalance:   senderInitBalance,
 		CoinbaseInitBalance: coinbaseInitBalance,
-		FeeTipped:           amount,
+		FeeTipped:           tipFee,
 		EvmRefund:           st.state.GetRefund(),
 	}
 
@@ -584,12 +587,6 @@ func (st *StateTransition) TransitionDb(refunds bool, gasBailout bool) (*evmtype
 }
 
 func (st *StateTransition) refundGas() {
-	from := st.msg.From()
-	if _, zeroFee := ZeroFeeTxList[from]; zeroFee {
-		st.gp.AddGas(st.gasRemaining)
-		return
-	}
-
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(uint256.Int).Mul(new(uint256.Int).SetUint64(st.gasRemaining), st.gasPrice)
 	st.state.AddBalance(st.msg.From(), remaining, tracing.BalanceIncreaseGasReturn)
