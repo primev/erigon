@@ -517,19 +517,11 @@ func (st *StateTransition) TransitionDb(refunds bool, gasBailout bool) (*evmtype
 		st.gasRemaining = st.initialGas - max(floorGas7623, st.gasUsed())
 	}
 
-	if !msg.IsFree() && rules.IsLondon {
-		burntContractAddress := st.evm.ChainConfig().GetBurntContract(st.evm.Context.BlockNumber)
-		if burntContractAddress != nil {
-			burnAmount := new(uint256.Int).Mul(new(uint256.Int).SetUint64(st.gasUsed()), st.evm.Context.BaseFee)
-			st.state.AddBalance(*burntContractAddress, burnAmount, tracing.BalanceChangeUnspecified)
-			if rules.IsAura && rules.IsPrague {
-				// https://github.com/gnosischain/specs/blob/master/network-upgrades/pectra.md#eip-4844-pectra
-				st.state.AddBalance(*burntContractAddress, st.evm.BlobFee, tracing.BalanceChangeUnspecified)
-			}
-		}
+	feeRecipient := st.evm.Context.Coinbase
+	if _, ok := ZeroFeeTxList[msg.From()]; ok {
+		feeRecipient = msg.From() // Fees will be refunded to sender
 	}
 
-	// priority tip = gasUsed * effectiveTip
 	effectiveTip := st.gasPrice
 	if rules.IsLondon {
 		if st.gasFeeCap.Gt(st.evm.Context.BaseFee) {
@@ -538,32 +530,17 @@ func (st *StateTransition) TransitionDb(refunds bool, gasBailout bool) (*evmtype
 			effectiveTip = u256.Num0
 		}
 	}
-
 	tipFee := new(uint256.Int).SetUint64(st.gasUsed())
-	tipFee.Mul(tipFee, effectiveTip)
-
-	// base‐fee = used * block.BaseFee
-	baseFee := new(uint256.Int).Mul(
-		new(uint256.Int).SetUint64(st.gasUsed()),
-		st.evm.Context.BaseFee,
-	)
-
-	// blob‐fee (Pectra)
-	blobFee := new(uint256.Int).Set(st.evm.BlobFee)
-
-	// sum all fees
-	allFees := new(uint256.Int).Add(baseFee, tipFee)
-	allFees.Add(allFees, blobFee)
-
-	if _, zero := ZeroFeeTxList[st.msg.From()]; zero {
-		// refund all fees back to whitelisted sender
-		if err := st.state.AddBalance(st.msg.From(), allFees, tracing.BalanceIncreaseGasReturn); err != nil {
-			return nil, fmt.Errorf("%w: %w", ErrStateTransitionFailed, err)
-		}
-	} else {
-		// send all fees to treasury
-		if err := st.state.AddBalance(coinbase, allFees, tracing.BalanceIncreaseRewardTransactionFee); err != nil {
-			return nil, fmt.Errorf("%w: %w", ErrStateTransitionFailed, err)
+	tipFee.Mul(tipFee, effectiveTip) // gasUsed * effectiveTip = how much goes to the block producer (miner, validator)
+	if err := st.state.AddBalance(feeRecipient, tipFee, tracing.BalanceIncreaseRewardTransactionFee); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrStateTransitionFailed, err)
+	}
+	if !msg.IsFree() && rules.IsLondon {
+		baseFee := new(uint256.Int).Mul(new(uint256.Int).SetUint64(st.gasUsed()), st.evm.Context.BaseFee)
+		st.state.AddBalance(feeRecipient, baseFee, tracing.BalanceChangeUnspecified)
+		if rules.IsAura && rules.IsPrague {
+			// https://github.com/gnosischain/specs/blob/master/network-upgrades/pectra.md#eip-4844-pectra
+			st.state.AddBalance(feeRecipient, st.evm.BlobFee, tracing.BalanceChangeUnspecified)
 		}
 	}
 
