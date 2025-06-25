@@ -530,9 +530,9 @@ func (st *StateTransition) TransitionDb(refunds bool, gasBailout bool) (*evmtype
 			effectiveTip = u256.Num0
 		}
 	}
-	tipFee := new(uint256.Int).SetUint64(st.gasUsed())
-	tipFee.Mul(tipFee, effectiveTip) // gasUsed * effectiveTip = how much goes to the block producer (miner, validator)
-	if err := st.state.AddBalance(feeRecipient, tipFee, tracing.BalanceIncreaseRewardTransactionFee); err != nil {
+	amount := new(uint256.Int).SetUint64(st.gasUsed())
+	amount.Mul(amount, effectiveTip) // gasUsed * effectiveTip = how much goes to the block producer (miner, validator)
+	if err := st.state.AddBalance(feeRecipient, amount, tracing.BalanceIncreaseRewardTransactionFee); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrStateTransitionFailed, err)
 	}
 	if !msg.IsFree() && rules.IsLondon {
@@ -551,7 +551,7 @@ func (st *StateTransition) TransitionDb(refunds bool, gasBailout bool) (*evmtype
 		ReturnData:          ret,
 		SenderInitBalance:   senderInitBalance,
 		CoinbaseInitBalance: coinbaseInitBalance,
-		FeeTipped:           tipFee,
+		FeeTipped:           amount,
 		EvmRefund:           st.state.GetRefund(),
 	}
 
