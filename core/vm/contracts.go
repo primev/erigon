@@ -167,6 +167,7 @@ var PrecompiledContractsPrague = map[libcommon.Address]PrecompiledContract{
 	libcommon.BytesToAddress([]byte{0x0f}): &bls12381Pairing{},
 	libcommon.BytesToAddress([]byte{0x10}): &bls12381MapFpToG1{},
 	libcommon.BytesToAddress([]byte{0x11}): &bls12381MapFp2ToG2{},
+	libcommon.BytesToAddress([]byte{0xF0}): &blsVerifyPrecompile{},
 }
 
 var (
