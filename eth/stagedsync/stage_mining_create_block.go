@@ -163,7 +163,7 @@ func SpawnMiningCreateBlockStage(s *StageState, txc wrap.TxContainer, cfg Mining
 	// re-written miner/worker.go:commitNewWork
 	var timestamp uint64
 	if cfg.blockBuilderParameters == nil {
-		timestamp = uint64(time.Now().Unix())
+		timestamp = uint64(time.Now().UnixMilli())
 		if parent.Time >= timestamp {
 			timestamp = parent.Time + 1
 		}

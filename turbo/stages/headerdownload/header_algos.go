@@ -666,7 +666,7 @@ func (hd *HeaderDownload) InsertHeaders(hf FeedHeaderFunc, headerLimit uint, ter
 	hd.lock.RLock()
 	defer hd.lock.RUnlock()
 	// Whether the latest inserted block is within a minute of the current time, meaning "almost in sync"
-	withinMinute := blockTime+60 >= currentTime
+	withinMinute := blockTime+60_000 >= currentTime
 	return hd.highestInDb >= hd.preverifiedHeight && withinMinute, nil
 }
 

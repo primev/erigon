@@ -93,7 +93,7 @@ func setDefaults(cfg *Config) {
 		cfg.Difficulty = new(big.Int)
 	}
 	if cfg.Time == nil {
-		cfg.Time = big.NewInt(time.Now().Unix())
+		cfg.Time = big.NewInt(time.Now().UnixMilli())
 	}
 	if cfg.GasLimit == 0 {
 		cfg.GasLimit = math.MaxUint64
