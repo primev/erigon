@@ -17,7 +17,6 @@
 package eth1_utils
 
 import (
-	"encoding/binary"
 	"fmt"
 	"math/big"
 
@@ -117,7 +116,6 @@ func ConvertBlockToRPC(block *types.Block) *execution.Block {
 
 func HeaderRpcToHeader(header *execution.Header) (*types.Header, error) {
 	var blockNonce types.BlockNonce
-	binary.BigEndian.PutUint64(blockNonce[:], header.Nonce)
 	h := &types.Header{
 		ParentHash:    gointerfaces.ConvertH256ToHash(header.ParentHash),
 		UncleHash:     gointerfaces.ConvertH256ToHash(header.OmmerHash),
@@ -126,7 +124,7 @@ func HeaderRpcToHeader(header *execution.Header) (*types.Header, error) {
 		TxHash:        gointerfaces.ConvertH256ToHash(header.TransactionHash),
 		ReceiptHash:   gointerfaces.ConvertH256ToHash(header.ReceiptRoot),
 		Bloom:         gointerfaces.ConvertH2048ToBloom(header.LogsBloom),
-		Difficulty:    gointerfaces.ConvertH256ToUint256Int(header.Difficulty).ToBig(),
+		Difficulty:    big.NewInt(0),
 		Number:        new(big.Int).SetUint64(header.BlockNumber),
 		GasLimit:      header.GasLimit,
 		GasUsed:       header.GasUsed,

@@ -26,6 +26,7 @@ import (
 	libcommon "github.com/erigontech/erigon-lib/common"
 	"github.com/erigontech/erigon-lib/gointerfaces"
 	execution "github.com/erigontech/erigon-lib/gointerfaces/executionproto"
+	"github.com/erigontech/erigon-lib/gointerfaces/typesproto"
 	types2 "github.com/erigontech/erigon-lib/gointerfaces/typesproto"
 
 	"github.com/erigontech/erigon/core"
@@ -64,6 +65,9 @@ func (e *EthereumExecutionModule) AssembleBlock(ctx context.Context, req *execut
 		}, nil
 	}
 	defer e.semaphore.Release(1)
+	if req.Withdrawals == nil {
+		req.Withdrawals = []*typesproto.Withdrawal{}
+	}
 	param := core.BlockBuilderParameters{
 		ParentHash:            gointerfaces.ConvertH256ToHash(req.ParentHash),
 		Timestamp:             req.Timestamp,

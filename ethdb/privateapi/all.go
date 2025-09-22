@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/erigontech/erigon-lib/gointerfaces/executionproto"
 	"github.com/erigontech/erigon-lib/gointerfaces/grpcutil"
 	remote "github.com/erigontech/erigon-lib/gointerfaces/remoteproto"
 	"github.com/erigontech/erigon/polygon/bridge"
@@ -37,7 +38,8 @@ import (
 
 func StartGrpc(kv *remotedbserver.KvServer, ethBackendSrv *EthBackendServer, txPoolServer txpoolproto.TxpoolServer,
 	miningServer txpoolproto.MiningServer, bridgeServer *bridge.BackendServer, heimdallServer *heimdall.BackendServer,
-	addr string, rateLimit uint32, creds credentials.TransportCredentials, healthCheck bool, logger log.Logger) (*grpc.Server, error) {
+	executionServer executionproto.ExecutionServer, addr string, rateLimit uint32, creds credentials.TransportCredentials,
+	healthCheck bool, logger log.Logger) (*grpc.Server, error) {
 	logger.Info("Starting private RPC server", "on", addr)
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -57,6 +59,9 @@ func StartGrpc(kv *remotedbserver.KvServer, ethBackendSrv *EthBackendServer, txP
 	}
 	if heimdallServer != nil {
 		remote.RegisterHeimdallBackendServer(grpcServer, heimdallServer)
+	}
+	if executionServer != nil {
+		executionproto.RegisterExecutionServer(grpcServer, executionServer)
 	}
 
 	remote.RegisterKVServer(grpcServer, kv)

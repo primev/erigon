@@ -885,30 +885,6 @@ func New(ctx context.Context, stack *node.Node, config *ethconfig.Config, logger
 	}
 
 	blockRetire := freezeblocks.NewBlockRetire(1, dirs, blockReader, blockWriter, backend.chainDB, heimdallStore, bridgeStore, backend.chainConfig, config, backend.notifications.Events, segmentsBuildLimiter, logger)
-	var creds credentials.TransportCredentials
-	if stack.Config().PrivateApiAddr != "" {
-		if stack.Config().TLSConnection {
-			creds, err = grpcutil.TLS(stack.Config().TLSCACert, stack.Config().TLSCertFile, stack.Config().TLSKeyFile)
-			if err != nil {
-				return nil, err
-			}
-		}
-		backend.privateAPI, err = privateapi.StartGrpc(
-			kvRPC,
-			backend.ethBackendRPC,
-			backend.txPoolGrpcServer,
-			backend.miningRPC,
-			bridgeRPC,
-			heimdallRPC,
-			stack.Config().PrivateApiAddr,
-			stack.Config().PrivateApiRateLimit,
-			creds,
-			stack.Config().HealthCheck,
-			logger)
-		if err != nil {
-			return nil, fmt.Errorf("private api: %w", err)
-		}
-	}
 
 	if currentBlock == nil {
 		currentBlock = genesis
@@ -1027,6 +1003,32 @@ func New(ctx context.Context, stack *node.Node, config *ethconfig.Config, logger
 	backend.pipelineStagedSync = stagedsync.New(config.Sync, pipelineStages, stagedsync.PipelineUnwindOrder, stagedsync.PipelinePruneOrder, logger, stages.ModeApplyingBlocks)
 	backend.eth1ExecutionServer = eth1.NewEthereumExecutionModule(blockReader, backend.chainDB, backend.pipelineStagedSync, backend.forkValidator, chainConfig, assembleBlockPOS, hook, backend.notifications.Accumulator, backend.notifications.RecentLogs, backend.notifications.StateChangesConsumer, logger, backend.engine, config.Sync, ctx)
 	executionRpc := direct.NewExecutionClientDirect(backend.eth1ExecutionServer)
+
+	var creds credentials.TransportCredentials
+	if stack.Config().PrivateApiAddr != "" {
+		if stack.Config().TLSConnection {
+			creds, err = grpcutil.TLS(stack.Config().TLSCACert, stack.Config().TLSCertFile, stack.Config().TLSKeyFile)
+			if err != nil {
+				return nil, err
+			}
+		}
+		backend.privateAPI, err = privateapi.StartGrpc(
+			kvRPC,
+			backend.ethBackendRPC,
+			backend.txPoolGrpcServer,
+			backend.miningRPC,
+			bridgeRPC,
+			heimdallRPC,
+			backend.eth1ExecutionServer,
+			stack.Config().PrivateApiAddr,
+			stack.Config().PrivateApiRateLimit,
+			creds,
+			stack.Config().HealthCheck,
+			logger)
+		if err != nil {
+			return nil, fmt.Errorf("private api: %w", err)
+		}
+	}
 
 	var executionEngine executionclient.ExecutionEngine
 
