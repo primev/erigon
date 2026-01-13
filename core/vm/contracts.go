@@ -25,6 +25,7 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/cloudflare/circl/sign/bls"
 	"github.com/consensys/gnark-crypto/ecc"
 	bls12381 "github.com/consensys/gnark-crypto/ecc/bls12-381"
 	"github.com/consensys/gnark-crypto/ecc/bls12-381/fp"
@@ -101,6 +102,9 @@ var PrecompiledContractsBerlin = map[libcommon.Address]PrecompiledContract{
 	libcommon.BytesToAddress([]byte{7}): &bn256ScalarMulIstanbul{},
 	libcommon.BytesToAddress([]byte{8}): &bn256PairingIstanbul{},
 	libcommon.BytesToAddress([]byte{9}): &blake2F{},
+
+	// primev pre-compiles start at 0xf addresses
+	libcommon.BytesToAddress([]byte{0xf0}): &bls12381SignatureVerification{},
 }
 
 var PrecompiledContractsCancun = map[libcommon.Address]PrecompiledContract{
@@ -1173,4 +1177,32 @@ func (c *p256Verify) Run(input []byte) ([]byte, error) {
 		// Signature is invalid
 		return nil, nil
 	}
+}
+
+// bls12381SignatureVerification implements BLS signature verification precompile.Add commentMore actions
+type bls12381SignatureVerification struct{}
+
+// RequiredGas returns the gas required to execute the pre-compiled contract.
+func (c *bls12381SignatureVerification) RequiredGas(input []byte) uint64 {
+	return params.BlsSignVerifyGas
+}
+
+func (c *bls12381SignatureVerification) Run(input []byte) ([]byte, error) {
+	// Input format:
+	// - pubkey (48 bytes) - G1 point
+	// - message (32 bytes) - Hash of the message
+	// - signature (96 bytes) - G2 point
+	if len(input) != 176 {
+		return nil, errBLS12381InvalidInputLength
+	}
+
+	var pubKey bls.PublicKey[bls.G1]
+	if err := pubKey.UnmarshalBinary(input[:48]); err != nil {
+		return nil, err
+	}
+
+	if !bls.Verify(&pubKey, input[48:80], input[80:]) {
+		return nil, nil
+	}
+	return input[:48], nil
 }
